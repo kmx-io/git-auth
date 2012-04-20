@@ -77,7 +77,8 @@ t_sym read_symbol (const char **buf)
   while (*b && !isspace(*b))
     b++;
   *buf = b;
-  return start == b ? NULL : sympackage_intern_n(&g_sympkg, start, b - start);
+  return (start == b) ? NULL :
+    sympackage_intern_n(&g_sympkg, start, b - start);
 }
 
 void rules_read (s_rules *rr, const char *path)
@@ -95,8 +96,12 @@ void rules_read (s_rules *rr, const char *path)
       syslog(LOG_DEBUG, "SYMBOL %s", s);
       rule_add(&r, s);
     }
-    log_cmd("RULE", &r);
-    rules_add(rr, &r);
+    if (r.count >= 2) {
+      log_cmd("RULE", &r);
+      rules_add(rr, &r);
+    }
+    else if (r.count == 1)
+      syslog(LOG_WARNING, "invalid rule: %s", line);
   }
   if (ferror(fp)) {
     fclose(fp);
@@ -120,6 +125,7 @@ int rule_match (s_rule *r, s_symtable *cmd)
   while (i--) {
     if (*rs != sym_wild && *rs != *cs)
       return 0;
+    syslog(LOG_INFO, "%s %s", *rs, *cs);
     rs++;
     cs++;
   }
@@ -155,7 +161,7 @@ void cmd_init (s_symtable *cmd, t_sym id, int argc, const char *argv[])
   symtable_init(cmd);
   symtable_add(cmd, id);
   while (argc--)
-    symtable_add(cmd, *argv++);
+    symtable_add(cmd, sympackage_intern(&g_sympkg, *argv++));
 }
 
 int main (int argc, char **argv)
