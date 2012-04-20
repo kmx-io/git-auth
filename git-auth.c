@@ -83,7 +83,7 @@ t_sym read_symbol (const char **buf)
 
 void rules_read (s_rules *rr, const char *path)
 {
-  syslog(LOG_INFO, "READ %s", path);
+  syslog(LOG_DEBUG, "READ %s", path);
   FILE *fp = fopen(path, "r");
   char line[2048];
   while (fgets(line, sizeof(line) - 4, fp)) {
@@ -125,7 +125,7 @@ int rule_match (s_rule *r, s_symtable *cmd)
   while (i--) {
     if (*rs != sym_wild && *rs != *cs)
       return 0;
-    syslog(LOG_INFO, "%s %s", *rs, *cs);
+    syslog(LOG_DEBUG, "%s %s", *rs, *cs);
     rs++;
     cs++;
   }
