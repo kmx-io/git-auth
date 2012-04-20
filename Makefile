@@ -17,6 +17,9 @@
 
 PROG =	git-auth
 
+DEBUG = -g -DDEBUG
+WARNINGS = yes
+
 CFLAGS += -W -Wall -Werror
 
 SRCS =	git-auth.c \
