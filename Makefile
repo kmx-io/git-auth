@@ -25,4 +25,17 @@ SRCS =	git-auth.c \
 	symtable.c symtable.h \
 	sympackage.c sympackage.h
 
+VER = 0.1
+
+dist: ${PROG}-${VER}.tar.gz
+
+DISTFILES = ${SRCS} ${PROG}.1 Makefile
+
+${PROG}-${VER}.tar.gz: ${DISTFILES}
+	mkdir ${PROG}-${VER}
+	cp ${DISTFILES} ${PROG}-${VER}
+	tar czf $@.tmp ${PROG}-${VER}
+	rm -rf ${PROG}-${VER}
+	mv $@.tmp $@
+
 .include <bsd.prog.mk>
