@@ -5,11 +5,26 @@
 .Nm git-auth
 .Nd authorize git commands
 .Sh SYNOPSIS
-.Nm usermod -s /usr/local/bin/git-auth charlie
-.Op Fl Ar #
-.Op Fl d
-.Op Fl a Ar magic
-.Ar command argument ...
+.Nm GIT_AUTH_ID=ID git-auth COMMAND [ARGS ...]
 .Sh DESCRIPTION
 .Nm
-Authorize git commands.
+starts by reading rules from /etc/git-auth.conf, one rule per line.
+Empty lines and lines starting with # are ignored.
+Each rule is made of tokens separated by one or more spaces.
+
+.Nm
+executes COMMAND and ARGS using execvp if the requested ID, COMMAND and ARGS
+match any of the rules defined in /etc/git-auth.conf.
+
+.Nm
+matches a rule by matching all the rule's tokens with
+ID, COMMAND and ARGS in order. Comparison is case sensitive.
+
+A wildcard token "*" matches any string.
+
+.Sh ENVIRONMENT
+GIT_AUTH_ID
+.Sh FILES
+/etc/git-auth.conf
+
+/home/git/.ssh/authorized_keys
