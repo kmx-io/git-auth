@@ -17,10 +17,12 @@
 
 PROG =	git-auth
 
-DEBUG = -g -DDEBUG
-WARNINGS = yes
+BINDIR ?= /usr/local/bin
 
-CFLAGS += -W -Wall -Werror
+DEBUG ?= -g -DDEBUG
+WARNINGS ?= yes
+
+CDIAGFLAGS ?= -W -Wall -Werror
 
 SRCS =	git-auth.c \
 	rule.c rule.h \
@@ -30,15 +32,28 @@ SRCS =	git-auth.c \
 
 VER = 0.1
 
-dist: ${PROG}-${VER}.tar.gz
+build: ${PROG}
+
+DISTDIR = ${PROG}-${VER}
+DIST = ${DISTDIR}.tar.gz
+dist: ${DIST}
 
 DISTFILES = ${SRCS} ${PROG}.1 Makefile
 
-${PROG}-${VER}.tar.gz: ${DISTFILES}
+${DIST}: ${DISTFILES}
 	mkdir ${PROG}-${VER}
-	cp ${DISTFILES} ${PROG}-${VER}
+	cd ${.CURDIR} && cp ${DISTFILES} ${.OBJDIR}/${PROG}-${VER}
 	tar czf $@.tmp ${PROG}-${VER}
 	rm -rf ${PROG}-${VER}
 	mv $@.tmp $@
+
+cleandir: cleandist
+
+cleandist:
+	rm -rf ${DISTDIR}
+
+.PHONY: cleandist
+
+CLEANFILES += ${DIST}
 
 .include <bsd.prog.mk>
