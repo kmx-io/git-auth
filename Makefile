@@ -18,9 +18,11 @@
 PROG =	git-auth
 VER = 0.1
 
+GIT_SHELL ?= /usr/local/bin/git-shell
+
+CPPFLAGS = -DSHELL=\"${GIT_SHELL}\"
 DEBUG ?= -g -DDEBUG
 WARNINGS ?= yes
-
 CDIAGFLAGS ?= -W -Wall -Werror
 LDFLAGS += -W -Wall -Werror
 
