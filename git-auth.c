@@ -93,21 +93,26 @@ t_sym read_symbol (const char **buf)
     sympackage_intern_n(&g_sympkg, start, b - start);
 }
 
+void rule_read (s_rule *r, const char *buf)
+{
+  const char *b = buf;
+  t_sym s;
+  while ((s = read_symbol(&b)) && (*s != '#')) {
+    syslog(LOG_DEBUG, "SYMBOL %s", s);
+    rule_add(r, s);
+  }
+}
+
 void rules_read (s_rules *rr, const char *path)
 {
   syslog(LOG_DEBUG, "READ %s", path);
   FILE *fp = fopen(path, "r");
   char line[2048];
   while (fgets(line, sizeof(line) - 4, fp)) {
-    const char *l = line;
     s_rule r;
-    t_sym s;
     syslog(LOG_DEBUG, "LINE %s", line);
     rule_init(&r);
-    while ((s = read_symbol(&l)) && (*s != '#')) {
-      syslog(LOG_DEBUG, "SYMBOL %s", s);
-      rule_add(&r, s);
-    }
+    rule_read(&r, line);
     if (r.count >= 2) {
       log_rule("RULE", &r);
       rules_add(rr, &r);
@@ -164,16 +169,15 @@ void init_package ()
 
 void usage (const char *argv0)
 {
-  fprintf(stderr, "Usage: %s=ID %s CMD ...\n", ENV_AUTH_ID, argv0);
+  fprintf(stderr, "Usage: %s=ID %s -c COMMAND\n", ENV_AUTH_ID, argv0);
   exit(5);
 }
 
-void cmd_init (s_symtable *cmd, t_sym id, int argc, const char *argv[])
+void cmd_init (s_symtable *cmd, t_sym id, const char *arg)
 {
-  symtable_init(cmd);
-  symtable_add(cmd, id);
-  while (argc--)
-    symtable_add(cmd, sympackage_intern(&g_sympkg, *argv++));
+  rule_init(cmd);
+  rule_add(cmd, id);
+  rule_read(cmd, arg);
 }
 
 void cleanup ()
@@ -184,13 +188,12 @@ void cleanup ()
 
 void exec_cmd (const s_symtable *cmd)
 {
-  size_t i;
   s_symtable xc;
   assert(cmd);
   symtable_init(&xc);
   symtable_add(&xc, SHELL);
-  for (i = 0; i < cmd->count; i++)
-    symtable_add(&xc, cmd->sym[i]);
+  symtable_add(&xc, "-c");
+  symtable_add(&xc, cmd->sym[1]);
   log_cmd("EXEC", &xc);
   cleanup();
   execvp(xc.sym[0], (char **)xc.sym);
@@ -204,13 +207,15 @@ int main (int argc, char **argv)
   log_args("NEW", argc, (const char **)argv);
   if (argv[argc])
     err(1, "bad argument list");
-  if (argc < 2)
+  if (argc != 3)
+    usage(argv[0]);
+  if (strcmp(argv[1], "-c"))
     usage(argv[0]);
   init_package();
   const char *env_auth_id = getenv(ENV_AUTH_ID);
   t_sym id = sympackage_intern(&g_sympkg, env_auth_id ? env_auth_id : "");
   s_symtable cmd;
-  cmd_init(&cmd, id, argc - 1, (const char **) argv + 1);
+  cmd_init(&cmd, id, argv[2]);
   rules_init(&rr);
   rules_read(&rr, "/etc/git-auth.conf");
   int auth_ok = auth(&rr, &cmd);
