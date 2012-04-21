@@ -193,7 +193,9 @@ void exec_cmd (const s_symtable *cmd)
   symtable_init(&xc);
   symtable_add(&xc, SHELL);
   symtable_add(&xc, "-c");
-  symtable_add(&xc, cmd->sym[1]);
+  char buf[2048];
+  stracat(buf, sizeof(buf), cmd->sym + 1, cmd->count - 1);
+  symtable_add(&xc, buf);
   log_cmd("EXEC", &xc);
   cleanup();
   execvp(xc.sym[0], (char **)xc.sym);
