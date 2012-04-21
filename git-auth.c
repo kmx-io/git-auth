@@ -67,22 +67,16 @@ void log_rule (const char *op, s_symtable *cmd)
   assert(cmd);
   m += strlcpy(msg + m, ENV_AUTH_ID, sizeof(msg) - m);
   msg[m++] = '=';
-  m += strlcpy(msg + m, cmd->sym[0], sizeof(msg) - m);
-  stracat(msg + m, sizeof(msg) - m, cmd->sym + 1, cmd->count - 1);
+  stracat(msg + m, sizeof(msg) - m, cmd->sym, cmd->count);
   syslog(LOG_INFO, "%s %s", op, msg);
 }
 
 void log_cmd (const char *op, s_symtable *cmd)
 {
   char msg[2048];
-  size_t m = 0;
-  size_t a;
   assert(cmd);
-  for (a = 0; a < cmd->count && m < sizeof(msg); a++) {
-    msg[m++] = ' ';
-    m += strlcpy(msg + m, cmd->sym[a], sizeof(msg) - m);
-  }
-  syslog(LOG_INFO, "%s%s", op, msg);
+  stracat(msg, sizeof(msg), cmd->sym, cmd->count);
+  syslog(LOG_INFO, "%s %s", op, msg);
 }
 
 t_sym read_symbol (const char **buf)
@@ -188,17 +182,15 @@ void cleanup ()
   sympackage_free(&g_sympkg);
 }
 
-void exec_cmd (s_symtable *cmd)
+void exec_cmd (const s_symtable *cmd)
 {
-  assert(cmd);
-  char buf[2048];
-  stracat(buf, sizeof(buf), cmd->sym, cmd->count);
-  assert(cmd);
+  size_t i;
   s_symtable xc;
+  assert(cmd);
   symtable_init(&xc);
   symtable_add(&xc, SHELL);
-  symtable_add(&xc, "-c");
-  symtable_add(&xc, buf);
+  for (i = 0; i < cmd->count; i++)
+    symtable_add(&xc, cmd->sym[i]);
   log_cmd("EXEC", &xc);
   cleanup();
   execvp(xc.sym[0], (char **)xc.sym);
