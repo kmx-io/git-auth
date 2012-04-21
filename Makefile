@@ -31,7 +31,7 @@ SRCS =	git-auth.c \
 	sympackage.c sympackage.h
 
 BINDIR ?= /usr/local/bin
-DOCDIR ?= /usr/local/share/doc
+MANDIR ?= /usr/local/share/man/man
 
 build: ${PROG}
 
