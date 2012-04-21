@@ -38,16 +38,38 @@
 
 s_sympackage g_sympkg;
 
+void stracat (char *buf, size_t bufsiz, const char **str_array, size_t sasiz)
+{
+  size_t b = 0;
+  size_t a;
+  assert(buf);
+  assert(bufsiz);
+  assert(str_array);
+  assert(sasiz);
+  for (a = 0; a < sasiz && b < bufsiz; a++) {
+    if (a)
+      buf[b++] = ' ';
+    b += strlcpy(buf + b, str_array[a], bufsiz - b);
+  }
+}
+
 void log_args (const char *op, int argc, const char **argv)
 {
   char msg[2048];
+  stracat(msg, sizeof(msg), argv, argc);
+  syslog(LOG_INFO, "%s %s", op, msg);
+}
+
+void log_rule (const char *op, s_symtable *cmd)
+{
+  char msg[2048];
   size_t m = 0;
-  int a;
-  for (a = 0; a < argc && m < sizeof(msg); a++) {
-    msg[m++] = ' ';
-    m += strlcpy(msg + m, argv[a], sizeof(msg) - m);
-  }
-  syslog(LOG_INFO, "%s%s", op, msg);
+  assert(cmd);
+  m += strlcpy(msg + m, ENV_AUTH_ID, sizeof(msg) - m);
+  msg[m++] = '=';
+  m += strlcpy(msg + m, cmd->sym[0], sizeof(msg) - m);
+  stracat(msg + m, sizeof(msg) - m, cmd->sym + 1, cmd->count - 1);
+  syslog(LOG_INFO, "%s %s", op, msg);
 }
 
 void log_cmd (const char *op, s_symtable *cmd)
@@ -58,10 +80,6 @@ void log_cmd (const char *op, s_symtable *cmd)
   assert(cmd);
   for (a = 0; a < cmd->count && m < sizeof(msg); a++) {
     msg[m++] = ' ';
-    if (a == 0) {
-      m += strlcpy(msg + m, ENV_AUTH_ID, sizeof(msg) - m);
-      msg[m++] = '=';
-    }
     m += strlcpy(msg + m, cmd->sym[a], sizeof(msg) - m);
   }
   syslog(LOG_INFO, "%s%s", op, msg);
@@ -97,7 +115,7 @@ void rules_read (s_rules *rr, const char *path)
       rule_add(&r, s);
     }
     if (r.count >= 2) {
-      log_cmd("RULE", &r);
+      log_rule("RULE", &r);
       rules_add(rr, &r);
     }
     else if (r.count == 1)
@@ -164,6 +182,29 @@ void cmd_init (s_symtable *cmd, t_sym id, int argc, const char *argv[])
     symtable_add(cmd, sympackage_intern(&g_sympkg, *argv++));
 }
 
+void cleanup ()
+{
+  closelog();
+  sympackage_free(&g_sympkg);
+}
+
+void exec_cmd (s_symtable *cmd)
+{
+  assert(cmd);
+  char buf[2048];
+  stracat(buf, sizeof(buf), cmd->sym, cmd->count);
+  assert(cmd);
+  s_symtable xc;
+  symtable_init(&xc);
+  symtable_add(&xc, SHELL);
+  symtable_add(&xc, "-c");
+  symtable_add(&xc, buf);
+  log_cmd("EXEC", &xc);
+  cleanup();
+  execvp(xc.sym[0], (char **)xc.sym);
+  err(2, "exec failed");
+}
+
 int main (int argc, char **argv)
 {
   s_rules rr;
@@ -174,23 +215,20 @@ int main (int argc, char **argv)
   if (argc < 2)
     usage(argv[0]);
   init_package();
-  rules_init(&rr);
-  rules_read(&rr, "/etc/git-auth.conf");
   const char *env_auth_id = getenv(ENV_AUTH_ID);
   t_sym id = sympackage_intern(&g_sympkg, env_auth_id ? env_auth_id : "");
   s_symtable cmd;
   cmd_init(&cmd, id, argc - 1, (const char **) argv + 1);
-  if (auth(&rr, &cmd)) {
-    log_cmd("ALLOW", &cmd);
-    closelog();
-    cmd.sym[0] = SHELL;
-    rules_free(&rr);
-    sympackage_free(&g_sympkg);
-    execvp(argv[1], argv + 1);
-    err(2, "exec failed");
-    return 2;
+  rules_init(&rr);
+  rules_read(&rr, "/etc/git-auth.conf");
+  int auth_ok = auth(&rr, &cmd);
+  rules_free(&rr);
+  log_rule(auth_ok ? "ALLOW" : "DENY", &cmd);
+  if (auth_ok) {
+    exec_cmd(&cmd);
+    // never reached
   }
-  log_cmd("DENY", &cmd);
-  closelog();
+  log_rule("DENY", &cmd);
+  cleanup();
   return 1;
 }
