@@ -16,13 +16,13 @@
 ##
 
 PROG =	git-auth
-
-BINDIR ?= /usr/local/bin
+VER = 0.1
 
 DEBUG ?= -g -DDEBUG
 WARNINGS ?= yes
 
 CDIAGFLAGS ?= -W -Wall -Werror
+LDFLAGS += -W -Wall -Werror
 
 SRCS =	git-auth.c \
 	rule.c rule.h \
@@ -30,7 +30,8 @@ SRCS =	git-auth.c \
 	symtable.c symtable.h \
 	sympackage.c sympackage.h
 
-VER = 0.1
+BINDIR ?= /usr/local/bin
+DOCDIR ?= /usr/local/share/doc
 
 build: ${PROG}
 
