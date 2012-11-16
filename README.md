@@ -20,7 +20,7 @@ A wildcard token "*" matches any string.
 
 ## Environment
 
- * **GIT_AUTH_ID** an arbitrary token to match with the rules.
+ * **GIT_AUTH_ID** : an arbitrary token to match with the rules.
 This is usually set for each public key in /home/git/.ssh/authorized_keys
 with
     environment="GIT_AUTH_ID=..." ssh-rsa ...
