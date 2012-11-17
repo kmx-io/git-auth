@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <err.h>
+#include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <assert.h>
@@ -107,6 +108,10 @@ void rules_read (s_rules *rr, const char *path)
 {
   syslog(LOG_DEBUG, "READ %s", path);
   FILE *fp = fopen(path, "r");
+  if (!fp) {
+    syslog(LOG_ERR, "rules_read: %s: %s", path, strerror(errno));
+    err(3, "rules_read: %s", path);
+  }
   char line[2048];
   while (fgets(line, sizeof(line) - 4, fp)) {
     s_rule r;
@@ -121,8 +126,9 @@ void rules_read (s_rules *rr, const char *path)
       syslog(LOG_WARNING, "invalid rule: %s", line);
   }
   if (ferror(fp)) {
+    syslog(LOG_ERR, "rules_read: %s: %s", path, strerror(errno));
     fclose(fp);
-    err(3, "%s", path);
+    err(3, "rules_read: %s", path);
   }
   fclose(fp);
 }
@@ -199,7 +205,8 @@ void exec_cmd (const s_symtable *cmd)
   log_cmd("EXEC", &xc);
   cleanup();
   execvp(xc.sym[0], (char **)xc.sym);
-  err(2, "exec failed");
+  syslog(LOG_ERR, "execvp: %s", strerror(errno));
+  err(2, "execvp");
 }
 
 int main (int argc, char **argv)
