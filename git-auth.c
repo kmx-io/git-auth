@@ -212,14 +212,14 @@ void exec_cmd (const s_symtable *cmd)
 int main (int argc, char **argv)
 {
   s_rules rr;
-  openlog(argv[0], LOG_PID, LOG_AUTH);
-  log_args("NEW", argc, (const char **)argv);
   if (argv[argc])
     err(1, "bad argument list");
   if (argc != 3)
     usage(argv[0]);
   if (strcmp(argv[1], "-c"))
     usage(argv[0]);
+  openlog(argv[0], LOG_PID, LOG_AUTH);
+  log_args("NEW", argc, (const char **)argv);
   init_package();
   const char *env_auth_id = getenv(ENV_AUTH_ID);
   t_sym id = sympackage_intern(&g_sympkg, env_auth_id ? env_auth_id : "");
