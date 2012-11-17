@@ -41,7 +41,7 @@ DISTDIR = ${PROG}-${VER}
 DIST = ${DISTDIR}.tar.gz
 dist: ${DIST}
 
-DISTFILES = ${SRCS} ${PROG}.1 Makefile
+DISTFILES = ${SRCS} ${PROG}.1 README.md Makefile
 
 ${DIST}: ${DISTFILES}
 	mkdir ${PROG}-${VER}
