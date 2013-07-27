@@ -36,8 +36,9 @@ void sympackage_free (s_sympackage *sp)
 
 t_sym sympackage_intern (s_sympackage *sp, const char *string)
 {
+  t_sym s;
   assert(sp);
-  t_sym s = symtable_find(&sp->static_table, string);
+  s = symtable_find(&sp->static_table, string);
   if (!s)
     s = symtable_find(&sp->dynamic_table, string);
   if (!s)
@@ -47,8 +48,9 @@ t_sym sympackage_intern (s_sympackage *sp, const char *string)
 
 t_sym sympackage_intern_n (s_sympackage *sp, const char *string, size_t len)
 {
+  t_sym s;
   assert(sp);
-  t_sym s = symtable_find_n(&sp->static_table, string, len);
+  s = symtable_find_n(&sp->static_table, string, len);
   if (!s)
     s = symtable_find_n(&sp->dynamic_table, string, len);
   if (!s)
@@ -58,8 +60,9 @@ t_sym sympackage_intern_n (s_sympackage *sp, const char *string, size_t len)
 
 t_sym sympackage_intern_static (s_sympackage *sp, const char *string)
 {
+  t_sym s;
   assert(sp);
-  t_sym s = symtable_find(&sp->static_table, string);
+  s = symtable_find(&sp->static_table, string);
   if (!s)
     s = symtable_add(&sp->static_table, string);
   return s;

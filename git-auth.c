@@ -39,7 +39,7 @@
 
 s_sympackage g_sympkg;
 
-void stracat (char *buf, size_t bufsiz, const char **str_array, size_t sasiz)
+static void stracat (char *buf, size_t bufsiz, const char **str_array, size_t sasiz)
 {
   size_t b = 0;
   size_t a;
@@ -54,14 +54,14 @@ void stracat (char *buf, size_t bufsiz, const char **str_array, size_t sasiz)
   }
 }
 
-void log_args (const char *op, int argc, const char **argv)
+static void log_args (const char *op, int argc, const char **argv)
 {
   char msg[2048];
   stracat(msg, sizeof(msg), argv, argc);
   syslog(LOG_INFO, "%s %s", op, msg);
 }
 
-void log_rule (const char *op, s_symtable *cmd)
+static void log_rule (const char *op, s_symtable *cmd)
 {
   char msg[2048];
   size_t m = 0;
@@ -72,7 +72,7 @@ void log_rule (const char *op, s_symtable *cmd)
   syslog(LOG_INFO, "%s %s", op, msg);
 }
 
-void log_cmd (const char *op, s_symtable *cmd)
+static void log_cmd (const char *op, s_symtable *cmd)
 {
   char msg[2048];
   assert(cmd);
@@ -80,7 +80,7 @@ void log_cmd (const char *op, s_symtable *cmd)
   syslog(LOG_INFO, "%s %s", op, msg);
 }
 
-t_sym read_symbol (const char **buf)
+static t_sym read_symbol (const char **buf)
 {
   const char *b = *buf;
   const char *start;
@@ -94,7 +94,7 @@ t_sym read_symbol (const char **buf)
     sympackage_intern_n(&g_sympkg, start, b - start);
 }
 
-void rule_read (s_rule *r, const char *buf)
+static void rule_read (s_rule *r, const char *buf)
 {
   const char *b = buf;
   t_sym s;
@@ -104,15 +104,16 @@ void rule_read (s_rule *r, const char *buf)
   }
 }
 
-void rules_read (s_rules *rr, const char *path)
+static void rules_read (s_rules *rr, const char *path)
 {
+  FILE *fp;
+  char line[2048];
   syslog(LOG_DEBUG, "READ %s", path);
-  FILE *fp = fopen(path, "r");
+  fp = fopen(path, "r");
   if (!fp) {
     syslog(LOG_ERR, "rules_read: %s: %s", path, strerror(errno));
     err(3, "rules_read: %s", path);
   }
-  char line[2048];
   while (fgets(line, sizeof(line) - 4, fp)) {
     s_rule r;
     syslog(LOG_DEBUG, "LINE %s", line);
@@ -133,29 +134,31 @@ void rules_read (s_rules *rr, const char *path)
   fclose(fp);
 }
 
-int rule_match (s_rule *r, s_symtable *cmd)
+static int rule_match (s_rule *r, s_symtable *cmd)
 {
   assert(r);
   assert(cmd);
   if (r->count > cmd->count)
     return 0;
-  size_t i = r->count;
-  t_sym *rs = r->sym;
-  t_sym *cs = cmd->sym;
-  static t_sym sym_wild = 0;
-  if (!sym_wild)
-    sym_wild = sympackage_intern_static(&g_sympkg, "*");
-  while (i--) {
-    if (*rs != sym_wild && *rs != *cs)
-      return 0;
-    syslog(LOG_DEBUG, "%s %s", *rs, *cs);
-    rs++;
-    cs++;
+  {
+    size_t i = r->count;
+    t_sym *rs = r->sym;
+    t_sym *cs = cmd->sym;
+    static t_sym sym_wild = 0;
+    if (!sym_wild)
+      sym_wild = sympackage_intern_static(&g_sympkg, "*");
+    while (i--) {
+      if (*rs != sym_wild && *rs != *cs)
+	return 0;
+      syslog(LOG_DEBUG, "%s %s", *rs, *cs);
+      rs++;
+      cs++;
+    }
   }
   return 1;
 }
 
-int auth (s_rules *rr, s_symtable *cmd)
+static int auth (s_rules *rr, s_symtable *cmd)
 {
   size_t i = rr->count;
   s_rule *r = rr->rule;
@@ -167,39 +170,39 @@ int auth (s_rules *rr, s_symtable *cmd)
   return 0;
 }
 
-void init_package ()
+static void init_package (void)
 {
   sympackage_init(&g_sympkg);
   sympackage_intern_static(&g_sympkg, "*");
 }
 
-void usage (const char *argv0)
+static void usage (const char *argv0)
 {
   fprintf(stderr, "Usage: %s=ID %s -c COMMAND\n", ENV_AUTH_ID, argv0);
   exit(5);
 }
 
-void cmd_init (s_symtable *cmd, t_sym id, const char *arg)
+static void cmd_init (s_symtable *cmd, t_sym id, const char *arg)
 {
   rule_init(cmd);
   rule_add(cmd, id);
   rule_read(cmd, arg);
 }
 
-void cleanup ()
+static void cleanup (void)
 {
   closelog();
   sympackage_free(&g_sympkg);
 }
 
-void exec_cmd (const s_symtable *cmd)
+static void exec_cmd (const s_symtable *cmd)
 {
   s_symtable xc;
+  char buf[2048];
   assert(cmd);
   symtable_init(&xc);
   symtable_add(&xc, SHELL);
   symtable_add(&xc, "-c");
-  char buf[2048];
   stracat(buf, sizeof(buf), cmd->sym + 1, cmd->count - 1);
   symtable_add(&xc, buf);
   log_cmd("EXEC", &xc);
@@ -221,20 +224,24 @@ int main (int argc, char **argv)
   openlog(argv[0], LOG_PID, LOG_AUTH);
   log_args("NEW", argc, (const char **)argv);
   init_package();
-  const char *env_auth_id = getenv(ENV_AUTH_ID);
-  t_sym id = sympackage_intern(&g_sympkg, env_auth_id ? env_auth_id : "");
-  s_symtable cmd;
-  cmd_init(&cmd, id, argv[2]);
-  rules_init(&rr);
-  rules_read(&rr, "/etc/git-auth.conf");
-  int auth_ok = auth(&rr, &cmd);
-  rules_free(&rr);
-  log_rule(auth_ok ? "ALLOW" : "DENY", &cmd);
-  if (auth_ok) {
-    exec_cmd(&cmd);
-    // never reached
+  {
+    const char *env_auth_id = getenv(ENV_AUTH_ID);
+    t_sym id = sympackage_intern(&g_sympkg, env_auth_id ? env_auth_id : "");
+    s_symtable cmd;
+    cmd_init(&cmd, id, argv[2]);
+    rules_init(&rr);
+    rules_read(&rr, "/etc/git-auth.conf");
+    {
+      int auth_ok = auth(&rr, &cmd);
+      rules_free(&rr);
+      log_rule(auth_ok ? "ALLOW" : "DENY", &cmd);
+      if (auth_ok) {
+	exec_cmd(&cmd);
+	// never reached
+      }
+    }
+    log_rule("DENY", &cmd);
   }
-  log_rule("DENY", &cmd);
   cleanup();
   return 1;
 }

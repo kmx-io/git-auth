@@ -16,7 +16,7 @@
 ##
 
 PROG =	git-auth
-VER = 0.2
+VER = 0.2.1
 
 GIT_SHELL ?= /usr/local/bin/git-shell
 

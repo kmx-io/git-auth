@@ -52,9 +52,11 @@ void symtable_free (s_symtable *st)
 void symtable_free_all (s_symtable *st)
 {
   assert(st);
-  int i = st->count;
-  while (i--)
-    free((void*)st->sym[i]);
+  {
+    int i = st->count;
+    while (i--)
+      free((void*)st->sym[i]);
+  }
   free(st->sym);
   bzero(st, sizeof(s_symtable));
 }
@@ -71,17 +73,19 @@ void symtable_enlarge (s_symtable *st)
 t_sym symtable_find (s_symtable *st, const char *string)
 {
   assert(st);
-  t_sym *s = st->sym;
-  int i = st->count;
-  while (i--) {
-    if ((*s == string) || (string && !strcmp(string, *s)))
-      return *s;
-    s++;
+  {
+    t_sym *s = st->sym;
+    int i = st->count;
+    while (i--) {
+      if ((*s == string) || (string && !strcmp(string, *s)))
+	return *s;
+      s++;
+    }
   }
   return NULL;
 }
 
-int strcmp_n (const char *a, const char *b, size_t len_b)
+static int strcmp_n (const char *a, const char *b, size_t len_b)
 {
   const unsigned char *aa = (const unsigned char *) a;
   const unsigned char *bb = (const unsigned char *) b;
@@ -100,12 +104,14 @@ int strcmp_n (const char *a, const char *b, size_t len_b)
 t_sym symtable_find_n (s_symtable *st, const char *string, size_t len)
 {
   assert(st);
-  t_sym *s = st->sym;
-  int i = st->count;
-  while (i--) {
-    if (*s == string || (string && len && !strcmp_n(*s, string, len)))
-      return *s;
-    s++;
+  {
+    t_sym *s = st->sym;
+    int i = st->count;
+    while (i--) {
+      if (*s == string || (string && len && !strcmp_n(*s, string, len)))
+	return *s;
+      s++;
+    }
   }
   return NULL;
 }

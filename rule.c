@@ -32,8 +32,9 @@ void rules_init (s_rules *rr)
 
 void rules_free (s_rules *rr)
 {
+  int i;
   assert(rr);
-  int i = rr->count;
+  i = rr->count;
   while (i--)
     rule_free(rr->rule + i);
   free(rr->rule);
