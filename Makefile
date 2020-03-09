@@ -40,9 +40,6 @@ build: ${PROG}
 DISTDIR = ${PROG}-${VER}
 DIST = ${DISTDIR}.tar.gz
 
-dist: ${DIST}
-	rsync -tP ${DIST} lowh-dist@lowh.net:dist/LowH/${PROG}/
-
 DISTFILES = ${SRCS} ${PROG}.1 README.md Makefile
 
 ${DIST}: ${DISTFILES}
