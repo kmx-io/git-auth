@@ -25,6 +25,20 @@ This is usually set for each public key in /home/git/.ssh/authorized_keys
 with
     environment="GIT_AUTH_ID=..." ssh-rsa ...
 
+## Configuration
+Access control rules for each git repository go into
+`/etc/git-auth.conf`.
+
+The syntax of this file is one rule per line.
+Each rule is composed of symbols separated by spaces.
+In order :
+ - A **GIT_AUTH_ID** value that was set in
+   `/home/git/.ssh/authorized_keys`.
+ - A `git-shell` command : either `git-upload-pack` for read access,
+   or `git-receive-pack` for write access.
+ - A repository path, relative to `/home/git`,
+   example: `thodg/config.git`
+
 ## Files
 
  * /etc/git-auth.conf
