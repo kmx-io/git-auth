@@ -45,7 +45,7 @@ void rules_enlarge (s_rules *rr)
 {
   assert(rr);
   rr->size += rr->size < 1024 ? rr->size : 1024;
-  if (!(rr->rule = realloc(rr->rule, rr->size)))
+  if (!(rr->rule = realloc(rr->rule, rr->size * sizeof(s_rule))))
     err(10, "rules realloc");
   assert(rr->size > rr->count);
 }
