@@ -25,7 +25,7 @@ void rules_init (s_rules *rr)
 {
   assert(rr);
   rr->count = 0;
-  rr->size = 32;
+  rr->size = 1024;
   if (!(rr->rule = calloc(rr->size, sizeof(s_rule))))
     err(10, "rules calloc");
 }
@@ -44,7 +44,7 @@ void rules_free (s_rules *rr)
 void rules_enlarge (s_rules *rr)
 {
   assert(rr);
-  rr->size += rr->size < 1024 ? rr->size : 1024;
+  rr->size += 1024;
   if (!(rr->rule = realloc(rr->rule, rr->size * sizeof(s_rule))))
     err(10, "rules realloc");
   assert(rr->size > rr->count);
