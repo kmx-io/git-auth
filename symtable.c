@@ -26,7 +26,7 @@ void symtable_init (s_symtable *st)
 {
   assert(st);
   st->count = 0;
-  st->size = 128;
+  st->size = 64;
   if (!(st->sym = calloc(st->size, sizeof(t_sym))))
     err(10, "symtable_init calloc");
 }
@@ -64,8 +64,8 @@ void symtable_free_all (s_symtable *st)
 void symtable_enlarge (s_symtable *st)
 {
   assert(st);
-  st->size += st->size < 1024 ? st->size : 1024;
-  if (!(st->sym = realloc(st->sym, st->size)))
+  st->size += 64;
+  if (!(st->sym = realloc(st->sym, st->size * sizeof(t_sym))))
     err(10, "symtable realloc");
   assert(st->size > st->count);
 }
