@@ -1,6 +1,6 @@
 /*
  * git-auth  -  restrict git commands
- * Copyright 2012 Thomas de Grivel <billitch@gmail.com>
+ * Copyright 2012,2021 Thomas de Grivel <thoxdg@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,233 +15,162 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <syslog.h>
-#include <stdarg.h>
-#include <string.h>
-#include <err.h>
-#include <errno.h>
-#include <ctype.h>
-#include <unistd.h>
 #include <assert.h>
-
-#include "sympackage.h"
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 #include "rule.h"
 
-#ifndef ENV_AUTH_ID
-# define ENV_AUTH_ID "GIT_AUTH_ID"
+#ifndef GIT_AUTH_ID_ENV
+#define GIT_AUTH_ID_ENV "GIT_AUTH_ID"
 #endif
 
-#ifndef SHELL
-# define SHELL "git-shell"
+#ifndef GIT_SHELL
+#define GIT_SHELL "git-shell"
 #endif
 
-s_sympackage g_sympkg;
-
-static void stracat (char *buf, size_t bufsiz, const char **str_array, size_t sasiz)
+static void stracat (char *buf, size_t bufsz,
+                     int argc, const char **argv)
 {
-  size_t b = 0;
-  size_t a;
-  assert(buf);
-  assert(bufsiz);
-  assert(str_array);
-  assert(sasiz);
-  for (a = 0; a < sasiz && b < bufsiz; a++) {
-    if (a)
-      buf[b++] = ' ';
-    b += strlcpy(buf + b, str_array[a], bufsiz - b);
-  }
+        size_t b = 0;
+        int a;
+        assert(buf);
+        assert(bufsz);
+        assert(argc);
+        assert(argv);
+        for (a = 0; a < argc && b < bufsz; a++) {
+                if (a)
+                        buf[b++] = ' ';
+                b += strlcpy(buf + b, argv[a], bufsz - b);
+        }
 }
 
 static void log_args (const char *op, int argc, const char **argv)
 {
-  char msg[2048];
-  stracat(msg, sizeof(msg), argv, argc);
-  syslog(LOG_INFO, "%s %s", op, msg);
+        char msg[2048];
+        stracat(msg, sizeof(msg), argc, argv);
+        syslog(LOG_INFO, "%s %s", op, msg);
 }
 
-static void log_rule (const char *op, s_symtable *cmd)
+static void log_rule (const char *op, s_rule *rule)
 {
-  char msg[2048];
-  size_t m = 0;
-  assert(cmd);
-  m += strlcpy(msg + m, ENV_AUTH_ID, sizeof(msg) - m);
-  msg[m++] = '=';
-  stracat(msg + m, sizeof(msg) - m, cmd->sym, cmd->count);
-  syslog(LOG_INFO, "%s %s", op, msg);
+        char msg[2048];
+        size_t m = 0;
+        const char *mode;
+        m += strlcpy(msg + m, GIT_AUTH_ID_ENV, sizeof(msg) - m);
+        msg[m++] = '=';
+        m += strlcpy(msg + m, rule->user, sizeof(msg) - m);
+        msg[m++] = ' ';
+        assert(1 <= rule->mode && rule->mode <= 3);
+        switch (rule->mode) {
+        case 1: mode = "r"; break;
+        case 2: mode = "w"; break;
+        case 3: mode = "rw"; break;
+        }
+        m += strlcpy(msg + m, mode, sizeof(msg) - m);
+        msg[m++] = ' ';
+        m += strlcpy(msg + m, rule->path, sizeof(msg) - m);
+        syslog(LOG_INFO, "%s %s", op, msg);
 }
 
-static void log_cmd (const char *op, s_symtable *cmd)
+static void log_cmd (const char *op, int argc, const char **argv)
 {
-  char msg[2048];
-  assert(cmd);
-  stracat(msg, sizeof(msg), cmd->sym, cmd->count);
-  syslog(LOG_INFO, "%s %s", op, msg);
+        char msg[2048];
+        stracat(msg, sizeof(msg), argc, argv);
+        syslog(LOG_INFO, "%s %s", op, msg);
 }
 
-static t_sym read_symbol (const char **buf)
+static int rule_match (s_rule *rule, int argc, const char **argv)
 {
-  const char *b = *buf;
-  const char *start;
-  while (isspace(*b))
-    b++;
-  start = b;
-  while (*b && !isspace(*b))
-    b++;
-  *buf = b;
-  return (start == b) ? NULL :
-    sympackage_intern_n(&g_sympkg, start, b - start);
-}
-
-static void rule_read (s_rule *r, const char *buf)
-{
-  const char *b = buf;
-  t_sym s;
-  while ((s = read_symbol(&b)) && (*s != '#')) {
-    syslog(LOG_DEBUG, "SYMBOL %s", s);
-    rule_add(r, s);
-  }
-}
-
-static void rules_read (s_rules *rr, const char *path)
-{
-  FILE *fp;
-  char line[2048];
-  syslog(LOG_DEBUG, "READ %s", path);
-  fp = fopen(path, "r");
-  if (!fp) {
-    syslog(LOG_ERR, "rules_read: %s: %s", path, strerror(errno));
-    err(3, "rules_read: %s", path);
-  }
-  while (fgets(line, sizeof(line) - 4, fp)) {
-    s_rule r;
-    syslog(LOG_DEBUG, "LINE %s", line);
-    rule_init(&r);
-    rule_read(&r, line);
-    if (r.count >= 2) {
-      log_rule("RULE", &r);
-      rules_add(rr, &r);
-    }
-    else if (r.count == 1)
-      syslog(LOG_WARNING, "invalid rule: %s", line);
-  }
-  if (ferror(fp)) {
-    syslog(LOG_ERR, "rules_read: %s: %s", path, strerror(errno));
-    fclose(fp);
-    err(3, "rules_read: %s", path);
-  }
-  fclose(fp);
-}
-
-static int rule_match (s_rule *r, s_symtable *cmd)
-{
-  assert(r);
-  assert(cmd);
-  if (r->count > cmd->count)
-    return 0;
-  {
-    size_t i = r->count;
-    t_sym *rs = r->sym;
-    t_sym *cs = cmd->sym;
-    static t_sym sym_wild = 0;
-    if (!sym_wild)
-      sym_wild = sympackage_intern_static(&g_sympkg, "*");
-    while (i--) {
-      if (*rs != sym_wild && *rs != *cs)
-	return 0;
-      syslog(LOG_DEBUG, "%s %s", *rs, *cs);
-      rs++;
-      cs++;
-    }
-  }
+  assert(rule);
+  assert(argc);
+  assert(argv);
+  if (argc != 3)
+          return 0;
+  log_rule("MATCH", rule);
+  if (strcmp(rule->user, argv[0]))
+          return 0;
+  if (!strcmp(argv[1], "git-upload-pack") && !(rule->mode & 1))
+          return 0;
+  if (!strcmp(argv[1], "git-receive-pack") && !(rule->mode & 2))
+          return 0;
+  if (strcmp(rule->path, argv[2]))
+          return 0;
   return 1;
 }
 
-static int auth (s_rules *rr, s_symtable *cmd)
+static int auth (s_rule rules[RULES_MAX], int argc, const char **argv)
 {
-  size_t i = rr->count;
-  s_rule *r = rr->rule;
-  while (i--) {
-    if (rule_match(r, cmd))
-      return 1;
-    r++;
-  }
-  return 0;
-}
-
-static void init_package (void)
-{
-  sympackage_init(&g_sympkg);
-  sympackage_intern_static(&g_sympkg, "*");
-}
-
-static void usage (const char *argv0)
-{
-  fprintf(stderr, "Usage: %s=ID %s -c COMMAND\n", ENV_AUTH_ID, argv0);
-  exit(5);
-}
-
-static void cmd_init (s_symtable *cmd, t_sym id, const char *arg)
-{
-  rule_init(cmd);
-  rule_add(cmd, id);
-  rule_read(cmd, arg);
+        s_rule *r = &rules[0];
+        while (r->user) {
+                if (rule_match(r, argc, argv)) {
+                        log_rule("ALLOW", r);
+                        return 1;
+                }
+                r++;
+        }
+        return 0;
 }
 
 static void cleanup (void)
 {
   closelog();
-  sympackage_free(&g_sympkg);
 }
 
-static void exec_cmd (const s_symtable *cmd)
+static void exec_cmd (int argc, const char **argv)
 {
-  s_symtable xc;
   char buf[2048];
-  assert(cmd);
-  symtable_init(&xc);
-  symtable_add(&xc, SHELL);
-  symtable_add(&xc, "-c");
-  stracat(buf, sizeof(buf), cmd->sym + 1, cmd->count - 1);
-  symtable_add(&xc, buf);
-  log_cmd("EXEC", &xc);
+  int cmd_argc;
+  const char *cmd_argv[4];
+  assert(argc);
+  assert(argv);
+  cmd_argc = 3;
+  cmd_argv[0] = GIT_SHELL;
+  cmd_argv[1] = "-c";
+  stracat(buf, sizeof(buf), argc - 1, argv + 1);
+  cmd_argv[2] = buf;
+  cmd_argv[3] = NULL;
+  log_cmd("EXEC", cmd_argc, cmd_argv);
   cleanup();
-  execvp(xc.sym[0], (char **)xc.sym);
-  syslog(LOG_ERR, "execvp: %s", strerror(errno));
-  err(2, "execvp");
+  execvp(cmd_argv[0], (char *const *) (cmd_argv + 1));
+  err(1, "%s", cmd_argv[0]);
+}
+
+static void usage (const char *argv0)
+{
+        fprintf(stderr, "Usage: %s=ID %s -c COMMAND\n",
+                GIT_AUTH_ID_ENV, argv0);
+        exit(1);
 }
 
 int main (int argc, char **argv)
 {
-  s_rules rr;
-  if (argv[argc])
-    err(1, "bad argument list");
-  if (argc != 3)
-    usage(argv[0]);
-  if (strcmp(argv[1], "-c"))
-    usage(argv[0]);
-  openlog(argv[0], LOG_PID, LOG_AUTH);
-  log_args("NEW", argc, (const char **)argv);
-  init_package();
-  {
-    const char *env_auth_id = getenv(ENV_AUTH_ID);
-    t_sym id = sympackage_intern(&g_sympkg, env_auth_id ? env_auth_id : "");
-    s_symtable cmd;
-    cmd_init(&cmd, id, argv[2]);
-    rules_init(&rr);
-    rules_read(&rr, "/etc/git-auth.conf");
-    {
-      int auth_ok = auth(&rr, &cmd);
-      rules_free(&rr);
-      log_rule(auth_ok ? "ALLOW" : "DENY", &cmd);
-      if (auth_ok) {
-	exec_cmd(&cmd);
-	// never reached
-      }
-    }
-    log_rule("DENY", &cmd);
-  }
-  cleanup();
-  return 1;
+        s_rule rules[RULES_MAX];
+        const char *git_auth_id;
+        int auth_ok;
+        const char *cmd_argv[3];
+        if (argc != 4)
+                usage(argv[0]);
+        if (strcmp(argv[1], "-c"))
+                usage(argv[0]);
+        git_auth_id = getenv(GIT_AUTH_ID_ENV);
+        if (!git_auth_id)
+                usage(argv[0]);
+        openlog(argv[0], LOG_PID, LOG_AUTH);
+        log_args("NEW", argc, (const char **) argv);
+        cmd_argv[0] = git_auth_id;
+        cmd_argv[1] = argv[2];
+        cmd_argv[2] = argv[3];
+        read_rules(rules, "/etc/git-auth.conf");
+        auth_ok = auth(rules, 3, cmd_argv);
+        log_cmd(auth_ok ? "ALLOW" : "DENY", 3, cmd_argv);
+        if (auth_ok) {
+                exec_cmd(3, cmd_argv);
+                // never reached
+        }
+        cleanup();
+        return 1;
 }

@@ -1,6 +1,6 @@
 /*
  * git-auth  -  restrict git commands
- * Copyright 2012 Thomas de Grivel <billitch@gmail.com>
+ * Copyright 2021 Thomas de Grivel <thoxdg@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,26 +18,23 @@
 #ifndef RULE_H
 #define RULE_H
 
-#include <stdlib.h>
+/* one rule per user, mode, path */
 
-#include "symtable.h"
+typedef struct rule {
+        const char *user;
+#define RULE_MODE_R  1
+#define RULE_MODE_W  2
+#define RULE_MODE_RW 3
+        int         mode;
+        const char *path;
+        const char *src_path;
+        int         src_line;
+} s_rule;
 
-typedef s_symtable s_rule;
+/* null terminated array of null terminated arrays of rules. */
 
-#define rule_init(r) symtable_init(r)
-#define rule_free symtable_free
-#define rule_free_all symtable_free_all
-#define rule_add(r, s) symtable_add(r, s)
+#define RULES_MAX (1024 * 10)
 
-typedef struct rules {
-  size_t count;
-  size_t size;
-  s_rule *rule;
-} s_rules;
-
-void rules_init (s_rules *rr);
-void rules_free (s_rules *rr);
-void rules_enlarge (s_rules *rr);
-const s_rule * rules_add (s_rules *rr, const s_rule *r);
+int read_rules (s_rule rules[RULES_MAX], const char *path);
 
 #endif

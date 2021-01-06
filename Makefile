@@ -20,17 +20,14 @@ VER = 0.2.1
 
 GIT_SHELL ?= /usr/local/bin/git-shell
 
-CPPFLAGS = -DSHELL=\"${GIT_SHELL}\"
-DEBUG ?= -g -DDEBUG
+CPPFLAGS = -DGIT_SHELL=\"${GIT_SHELL}\"
+DEBUG ?= -ggdb -DDEBUG
 WARNINGS ?= yes
 CDIAGFLAGS ?= -W -Wall -Werror
 LDFLAGS += -W -Wall -Werror
 
 SRCS =	git-auth.c \
 	rule.c rule.h \
-	symbol.c symbol.h \
-	symtable.c symtable.h \
-	sympackage.c sympackage.h
 
 BINDIR ?= /usr/local/bin
 MANDIR ?= /usr/local/man/man
