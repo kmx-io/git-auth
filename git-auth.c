@@ -76,6 +76,7 @@ static void log_rule (const char *op, s_rule *rule)
         syslog(LOG_INFO, "%s %s", op, msg);
 }
 
+/*
 static void log_rules (s_rule rules[RULES_MAX])
 {
         int r = 0;
@@ -86,6 +87,7 @@ static void log_rules (s_rule rules[RULES_MAX])
                 r++;
         }
 }
+*/
 
 static void log_cmd (const char *op, int argc, const char **argv)
 {
@@ -115,10 +117,10 @@ static int rule_match (s_rule *rule, int argc, const char **argv)
 
 static int auth (s_rule rules[RULES_MAX], int argc, const char **argv)
 {
-        s_rule *r = &rules[0];
-        while (r->user) {
-                if (rule_match(r, argc, argv)) {
-                        log_rule("ALLOW", r);
+        int r = 0;
+        while (rules[r].user) {
+                if (rule_match(&rules[r], argc, argv)) {
+                        log_rule("ALLOW", &rules[r]);
                         return 1;
                 }
                 r++;
@@ -182,7 +184,7 @@ int main (int argc, char **argv)
         cmd_argv[1] = argv[2];
         cmd_argv[2] = argv[3];
         read_rules(rules, "/etc/git-auth.conf");
-        log_rules(rules);
+        // log_rules(rules);
         auth_ok = auth(rules, 3, cmd_argv);
         log_cmd(auth_ok ? "ALLOW" : "DENY", 3, cmd_argv);
         if (auth_ok) {
