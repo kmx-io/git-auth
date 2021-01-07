@@ -152,13 +152,19 @@ int main (int argc, char **argv)
         const char *git_auth_id;
         int auth_ok;
         const char *cmd_argv[3];
-        if (argc != 4)
+        if (argc != 3) {
+                fprintf(stderr, "git-auth: wrong number of arguments.\n");
                 usage(argv[0]);
-        if (strcmp(argv[1], "-c"))
+        }
+        if (strcmp(argv[1], "-c")) {
+                fprintf(stderr, "expected -c as first argument.\n");
                 usage(argv[0]);
+        }
         git_auth_id = getenv(GIT_AUTH_ID_ENV);
-        if (!git_auth_id)
+        if (!git_auth_id) {
+                fprintf(stderr, "missing %s.\n", GIT_AUTH_ID_ENV);
                 usage(argv[0]);
+        }
         openlog(argv[0], LOG_PID, LOG_AUTH);
         log_args("NEW", argc, (const char **) argv);
         cmd_argv[0] = git_auth_id;
