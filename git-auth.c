@@ -95,7 +95,7 @@ static int rule_match (s_rule *rule, int argc, const char **argv)
           return 0;
   if (!strcmp(argv[1], "git-upload-pack") && !(rule->mode & 1))
           return 0;
-  if (!strcmp(argv[1], "git-receive-pack") && !(rule->mode & 2))
+  else if (!strcmp(argv[1], "git-receive-pack") && !(rule->mode & 2))
           return 0;
   if (strcmp(rule->path, argv[2]))
           return 0;
