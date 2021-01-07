@@ -98,31 +98,33 @@ static void log_cmd (const char *op, int argc, const char **argv)
 
 static int rule_match (s_rule *rule, int argc, const char **argv)
 {
-  assert(rule);
-  assert(argc);
-  assert(argv);
-  if (argc != 3)
-          return 0;
-  log_rule("MATCH", rule);
-  if (strcmp(rule->user, argv[0]))
-          return 0;
-  if (!strcmp(argv[1], "git-upload-pack") && !(rule->mode & 1))
-          return 0;
-  else if (!strcmp(argv[1], "git-receive-pack") && !(rule->mode & 2))
-          return 0;
-  if (strcmp(rule->path, argv[2]))
-          return 0;
-  return 1;
+        assert(rule);
+        assert(argc);
+        assert(argv);
+        if (argc != 3)
+                return 0;
+        if (strcmp(rule->user, argv[0]))
+                return 0;
+        if (!strcmp(argv[1], "git-upload-pack") && !(rule->mode & 1))
+                return 0;
+        else if (!strcmp(argv[1], "git-receive-pack") && !(rule->mode & 2))
+                return 0;
+        if (strcmp(rule->path, argv[2]))
+                return 0;
+        return 1;
 }
 
 static int auth (s_rule rules[RULES_MAX], int argc, const char **argv)
 {
         int r = 0;
         while (rules[r].user) {
+                log_rule("MATCH", &rules[r]);
                 if (rule_match(&rules[r], argc, argv)) {
                         log_rule("ALLOW", &rules[r]);
                         return 1;
                 }
+                else
+                        log_rule("DENY", &rules[r]);
                 r++;
         }
         return 0;
@@ -130,26 +132,26 @@ static int auth (s_rule rules[RULES_MAX], int argc, const char **argv)
 
 static void cleanup (void)
 {
-  closelog();
+        closelog();
 }
 
 static void exec_cmd (int argc, const char **argv)
 {
-  char buf[2048];
-  int cmd_argc;
-  const char *cmd_argv[4];
-  assert(argc);
-  assert(argv);
-  cmd_argc = 3;
-  cmd_argv[0] = GIT_SHELL;
-  cmd_argv[1] = "-c";
-  stracat(buf, sizeof(buf), argc - 1, argv + 1);
-  cmd_argv[2] = buf;
-  cmd_argv[3] = NULL;
-  log_cmd("EXEC", cmd_argc, cmd_argv);
-  cleanup();
-  execvp(cmd_argv[0], (char *const *) (cmd_argv + 1));
-  err(1, "%s", cmd_argv[0]);
+        char buf[2048];
+        int cmd_argc;
+        const char *cmd_argv[4];
+        assert(argc);
+        assert(argv);
+        cmd_argc = 3;
+        cmd_argv[0] = GIT_SHELL;
+        cmd_argv[1] = "-c";
+        stracat(buf, sizeof(buf), argc - 1, argv + 1);
+        cmd_argv[2] = buf;
+        cmd_argv[3] = NULL;
+        log_cmd("EXEC", cmd_argc, cmd_argv);
+        cleanup();
+        execvp(cmd_argv[0], (char *const *) (cmd_argv + 1));
+        err(1, "%s", cmd_argv[0]);
 }
 
 static void usage (const char *argv0)
