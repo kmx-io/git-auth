@@ -32,8 +32,7 @@
 #define GIT_SHELL "git-shell"
 #endif
 
-static void stracat (char *buf, size_t bufsz,
-                     int argc, const char **argv)
+static void stracat (char *buf, size_t bufsz, int argc, const char **argv)
 {
         size_t b = 0;
         int a;
@@ -41,10 +40,20 @@ static void stracat (char *buf, size_t bufsz,
         assert(bufsz);
         assert(argc);
         assert(argv);
-        for (a = 0; a < argc && b < bufsz; a++) {
+        for (a = 0; a < argc; a++) {
+                const char *arg;
+                assert(b < bufsz - 3 - strlen(argv[a]));
                 if (a)
                         buf[b++] = ' ';
-                b += strlcpy(buf + b, argv[a], bufsz - b);
+                buf[b++] = '"';
+                arg = argv[a];
+                while (*arg) {
+                        char c = *(arg++);
+                        if (c == '"')
+                                buf[b++] = '\\';
+                        buf[b++] = c;
+                }
+                buf[b++] = '"';
         }
 }
 
