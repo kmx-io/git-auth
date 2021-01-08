@@ -180,6 +180,7 @@ static void usage (const char *argv0)
 {
         fprintf(stderr, "Usage: %s=ID %s -c GIT_COMMAND PATH\n",
                 GIT_AUTH_ID_ENV, argv0);
+        cleanup();
         exit(1);
 }
 
