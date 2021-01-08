@@ -187,12 +187,12 @@ int main (int argc, char **argv)
         cmd_argv[1] = argv[2];
         cmd_argv[2] = argv[3];
         read_rules(rules, "/etc/git-auth.conf");
-        // log_rules(rules);
+        /* log_rules(rules); */
         auth_ok = auth(rules, 3, cmd_argv);
         log_cmd(auth_ok ? "ALLOW" : "DENY", 3, cmd_argv);
         if (auth_ok) {
                 exec_cmd(3, cmd_argv);
-                // never reached
+                /* never reached */
         }
         cleanup();
         return 1;

@@ -156,7 +156,7 @@ int read_rules (s_rule rules[RULES_MAX], const char *path)
                         bzero(&rules[r], sizeof(s_rule));
                         if (error)
                                 exit(1);
-                        // fprintf(stderr, "fgets NULL. r: %d\n", r);
+                        /* fprintf(stderr, "fgets NULL. r: %d\n", r); */
                         return r;
                 }
                 if (!(nl = strchr(buf, '\n'))) {
@@ -178,6 +178,6 @@ int read_rules (s_rule rules[RULES_MAX], const char *path)
         bzero(&rules[r], sizeof(s_rule));
         if (error)
                 exit(1);
-        // fprintf(stderr, "EOF. r: %d\n", r);
+        /* fprintf(stderr, "EOF. r: %d\n", r); */
         return r;
 }

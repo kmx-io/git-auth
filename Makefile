@@ -23,8 +23,8 @@ GIT_SHELL ?= /usr/local/bin/git-shell
 CPPFLAGS = -DGIT_SHELL=\"${GIT_SHELL}\"
 DEBUG ?= -ggdb -DDEBUG
 WARNINGS ?= yes
-CDIAGFLAGS ?= -W -Wall -Werror
-LDFLAGS += -W -Wall -Werror
+CDIAGFLAGS ?= -W -Wall -Werror -std=c89 -pedantic
+LDFLAGS += -W -Wall -Werror -std=c89 -pedantic
 
 SRCS =	git-auth.c \
 	rule.c rule.h \
