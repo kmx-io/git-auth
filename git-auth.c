@@ -96,6 +96,30 @@ static void log_cmd (const char *op, int argc, const char **argv)
         syslog(LOG_INFO, "%s %s", op, msg);
 }
 
+/*
+int unquote (char *buf, size_t bufsz, const char *str)
+{
+        size_t len = strlen(str);
+        assert(len < bufsz);
+        if (str[0] == '\'' && len > 1 && str[len - 1] == '\'') {
+                strlcpy(buf, str + 1, bufsz);
+                buf[len - 2] = 0;
+                return 1;
+        }
+        strlcpy(buf, str, bufsz);
+        return 0;
+}
+
+static int rule_match_path (const char *rule_path, const char *arg_path)
+{
+        char rp[1024];
+        char ap[1024];
+        unquote(rp, sizeof(rp), rule_path);
+        unquote(ap, sizeof(ap), arg_path);
+        return strcmp(rp, ap) == 0;
+}
+*/
+
 static int rule_match (s_rule *rule, int argc, const char **argv)
 {
         assert(rule);
@@ -118,15 +142,14 @@ static int auth (s_rule rules[RULES_MAX], int argc, const char **argv)
 {
         int r = 0;
         while (rules[r].user) {
-                log_rule("MATCH", &rules[r]);
+                /* log_rule("MATCH", &rules[r]); */
                 if (rule_match(&rules[r], argc, argv)) {
                         log_rule("ALLOW", &rules[r]);
                         return 1;
                 }
-                else
-                        log_rule("DENY", &rules[r]);
+                /* else
+                   log_rule("DENY", &rules[r]); */
                 r++;
-                log_rule("NEXT", &rules[r]);
         }
         return 0;
 }
@@ -139,25 +162,23 @@ static void cleanup (void)
 static void exec_cmd (int argc, const char **argv)
 {
         char buf[2048];
-        int cmd_argc;
         const char *cmd_argv[4];
         assert(argc);
         assert(argv);
-        cmd_argc = 3;
         cmd_argv[0] = GIT_SHELL;
         cmd_argv[1] = "-c";
         stracat(buf, sizeof(buf), argc - 1, argv + 1);
         cmd_argv[2] = buf;
         cmd_argv[3] = NULL;
-        log_cmd("EXEC", cmd_argc, cmd_argv);
+        log_cmd("EXEC", 3, cmd_argv);
         cleanup();
-        execvp(cmd_argv[0], (char *const *) (cmd_argv + 1));
+        execvp(cmd_argv[0], (char *const *) cmd_argv);
         err(1, "%s", cmd_argv[0]);
 }
 
 static void usage (const char *argv0)
 {
-        fprintf(stderr, "Usage: %s=ID %s -c COMMAND\n",
+        fprintf(stderr, "Usage: %s=ID %s -c GIT_COMMAND PATH\n",
                 GIT_AUTH_ID_ENV, argv0);
         exit(1);
 }
@@ -168,8 +189,8 @@ int main (int argc, char **argv)
         const char *git_auth_id;
         int auth_ok;
         const char *cmd_argv[3];
-        if (argc != 3) {
-                fprintf(stderr, "git-auth: wrong number of arguments.\n");
+        if (argc != 4) {
+                fprintf(stderr, "git-auth: wrong number of arguments: %d.\n", argc);
                 usage(argv[0]);
         }
         if (strcmp(argv[1], "-c")) {
