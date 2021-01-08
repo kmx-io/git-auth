@@ -126,6 +126,7 @@ static int auth (s_rule rules[RULES_MAX], int argc, const char **argv)
                 else
                         log_rule("DENY", &rules[r]);
                 r++;
+                log_rule("NEXT", &rules[r]);
         }
         return 0;
 }
