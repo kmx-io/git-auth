@@ -180,7 +180,6 @@ static void usage (const char *argv0)
 {
         fprintf(stderr, "Usage: %s=ID %s -c GIT_COMMAND PATH\n",
                 GIT_AUTH_ID_ENV, argv0);
-        cleanup();
         exit(1);
 }
 
@@ -190,10 +189,11 @@ int main (int argc, char **argv)
         const char *git_auth_id;
         int auth_ok;
         const char *cmd_argv[3];
-        openlog(argv[0], LOG_PID, LOG_AUTH);
-        log_args("NEW", argc, (const char **) argv);
         if (argc != 4) {
+                char buf[1024];
                 fprintf(stderr, "git-auth: wrong number of arguments: %d.\n", argc);
+                stracat(buf, sizeof(buf), argc, (const char **) argv);
+                fprintf(stderr, "%s\n", buf);
                 usage(argv[0]);
         }
         if (strcmp(argv[1], "-c")) {
@@ -205,6 +205,8 @@ int main (int argc, char **argv)
                 fprintf(stderr, "missing %s.\n", GIT_AUTH_ID_ENV);
                 usage(argv[0]);
         }
+        openlog(argv[0], LOG_PID, LOG_AUTH);
+        log_args("NEW", argc, (const char **) argv);
         cmd_argv[0] = git_auth_id;
         cmd_argv[1] = argv[2];
         cmd_argv[2] = argv[3];
