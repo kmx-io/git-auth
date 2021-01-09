@@ -42,6 +42,26 @@ static void stracat (char *buf, size_t bufsz, int argc, const char **argv)
         assert(argv);
         for (a = 0; a < argc; a++) {
                 const char *arg;
+                assert(b < bufsz - strlen(argv[a]));
+                if (a)
+                        buf[b++] = ' ';
+                arg = argv[a];
+                while (*arg)
+                        buf[b++] = *(arg++);
+        }
+        buf[b] = 0;
+}
+
+static void stracat_quoted (char *buf, size_t bufsz, int argc, const char **argv)
+{
+        size_t b = 0;
+        int a;
+        assert(buf);
+        assert(bufsz);
+        assert(argc);
+        assert(argv);
+        for (a = 0; a < argc; a++) {
+                const char *arg;
                 assert(b < bufsz - 3 - strlen(argv[a]));
                 if (a)
                         buf[b++] = ' ';
@@ -55,6 +75,7 @@ static void stracat (char *buf, size_t bufsz, int argc, const char **argv)
                 }
                 buf[b++] = '"';
         }
+        buf[b] = 0;
 }
 
 static void log_args (const char *op, int argc, const char **argv)
@@ -194,14 +215,16 @@ static void usage (const char *argv0)
 
 int main (int argc, char **argv)
 {
+        char buf[1024];
+        char *bs;
         s_rule rules[RULES_MAX];
         const char *git_auth_id;
         int auth_ok;
         const char *cmd_argv[3];
-        if (argc != 4) {
+        if (argc != 3) {
                 char buf[1024];
                 fprintf(stderr, "git-auth: wrong number of arguments: %d.\n", argc);
-                stracat(buf, sizeof(buf), argc, (const char **) argv);
+                stracat_quoted(buf, sizeof(buf), argc, (const char **) argv);
                 fprintf(stderr, "%s\n", buf);
                 usage(argv[0]);
         }
@@ -214,11 +237,14 @@ int main (int argc, char **argv)
                 fprintf(stderr, "missing %s.\n", GIT_AUTH_ID_ENV);
                 usage(argv[0]);
         }
+        cmd_argv[0] = git_auth_id;
+        strlcpy(buf, argv[2], sizeof(buf));
+        cmd_argv[1] = buf;
+        bs = strchr(buf, ' ');
+        *bs++ = 0;
+        cmd_argv[2] = bs;
         openlog(argv[0], LOG_PID, LOG_AUTH);
         log_args("NEW", argc, (const char **) argv);
-        cmd_argv[0] = git_auth_id;
-        cmd_argv[1] = argv[2];
-        cmd_argv[2] = argv[3];
         read_rules(rules, "/etc/git-auth.conf");
         /* log_rules(rules); */
         auth_ok = auth(rules, 3, cmd_argv);
