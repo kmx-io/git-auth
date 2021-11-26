@@ -245,7 +245,7 @@ int main (int argc, char **argv)
         cmd_argv[2] = bs;
         openlog(argv[0], LOG_PID, LOG_AUTH);
         log_args("NEW", argc, (const char **) argv);
-        read_rules(rules, "/etc/git-auth.conf");
+        read_rules(rules, "/etc/git/auth.conf");
         /* log_rules(rules); */
         auth_ok = auth(rules, 3, cmd_argv);
         log_cmd(auth_ok ? "ALLOW" : "DENY", 3, cmd_argv);
