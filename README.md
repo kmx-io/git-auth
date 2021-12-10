@@ -6,12 +6,12 @@
 
 ## Description
 
-**git-auth** starts by reading rules from /etc/git-auth.conf, one rule
+**git-auth** starts by reading rules from /etc/git/auth.conf, one rule
 per line. Empty lines and lines starting with # are ignored. Each rule
 is made of tokens separated by one or more spaces.
 
 **git-auth** executes COMMAND and ARGS using execvp if the requested ID,
-COMMAND and ARGS match any of the rules defined in /etc/git-auth.conf.
+COMMAND and ARGS match any of the rules defined in /etc/git/auth.conf.
 
 **git-auth** matches a rule by matching all the rule's tokens with ID,
 COMMAND and ARGS in order. Comparison is case sensitive.
@@ -27,7 +27,7 @@ with
 
 ## Configuration
 Access control rules for each git repository go into
-`/etc/git-auth.conf`.
+`/etc/git/auth.conf`.
 
 The syntax of this file is one rule per line.
 Each rule is composed of symbols separated by spaces.
@@ -41,5 +41,5 @@ In order :
 
 ## Files
 
- * /etc/git-auth.conf
+ * /etc/git/auth.conf
  * /home/git/.ssh/authorized_keys
