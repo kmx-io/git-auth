@@ -39,10 +39,9 @@ Each rule is composed of symbols separated by spaces.
 In order :
  - A **GIT_AUTH_ID** value that was set in
    `/home/git/.ssh/authorized_keys`.
- - A `git-shell` command : either `git-upload-pack` for read access,
-   or `git-receive-pack` for write access.
+ - Permissions, either `rw` or `r`.
  - A repository path, relative to `/home/git`,
-   example: `thodg/config.git`
+   example: `cl-adams/adams.git`
 
 
 ## Files
