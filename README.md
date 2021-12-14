@@ -1,8 +1,10 @@
 # GIT-AUTH
 
+
 ## Synopsis
 
     GIT_AUTH_ID=ID git-auth COMMAND [ARGS ...]</td>
+
 
 ## Description
 
@@ -18,6 +20,7 @@ COMMAND and ARGS in order. Comparison is case sensitive.
 
 A wildcard token "*" matches any string.
 
+
 ## Environment
 
  * **GIT_AUTH_ID** : an arbitrary token to match with the rules.
@@ -25,7 +28,9 @@ This is usually set for each public key in /home/git/.ssh/authorized_keys
 with
     environment="GIT_AUTH_ID=..." ssh-rsa ...
 
+
 ## Configuration
+
 Access control rules for each git repository go into
 `/etc/git/auth.conf`.
 
@@ -39,10 +44,18 @@ In order :
  - A repository path, relative to `/home/git`,
    example: `thodg/config.git`
 
+
 ## Files
 
  * /etc/git/auth.conf
  * /home/git/.ssh/authorized_keys
+
+
+# See also
+
+[kmxgit](https://git.kmx.io/kmx.io/kmxgit)
+is a web interface on top of git-auth written in Elixir / Phoenix.
+
 
 # Copying
 
