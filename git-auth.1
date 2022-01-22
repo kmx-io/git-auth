@@ -8,7 +8,7 @@
 .Nm GIT_AUTH_ID=ID git-auth COMMAND [ARGS ...]
 .Sh DESCRIPTION
 .Nm
-starts by reading rules from /etc/git-auth.conf, one rule per line.
+starts by reading rules from /etc/git/auth.conf, one rule per line.
 Empty lines and lines starting with # are ignored.
 Each rule is made of tokens separated by one or more spaces.
 .Pp
@@ -28,6 +28,6 @@ This is usually set for each public key in /home/git/.ssh/authorized_keys
 with
 .Nm environment="GIT_AUTH_ID=..."
 .Sh FILES
-/etc/git-auth.conf
+/etc/git/auth.conf
 .Pp
 /home/git/.ssh/authorized_keys
