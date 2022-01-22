@@ -3,7 +3,7 @@
 
 ## Synopsis
 
-    GIT_AUTH_ID=ID git-auth COMMAND [ARGS ...]</td>
+    GIT_AUTH_ID=ID git-auth COMMAND [ARGS ...]
 
 
 ## Description
