@@ -32,6 +32,9 @@
 #define GIT_SHELL "git-shell"
 #endif
 
+#define CMD_BUFSZ 2048
+#define LOG_BUFSZ 2048
+
 static void stracat (char *buf, size_t bufsz, int argc, const char **argv)
 {
         size_t b = 0;
@@ -42,7 +45,10 @@ static void stracat (char *buf, size_t bufsz, int argc, const char **argv)
         assert(argv);
         for (a = 0; a < argc; a++) {
                 const char *arg;
-                assert(b < bufsz - strlen(argv[a]));
+                if (b >= bufsz - strlen(argv[a]) - 2) {
+                        errno = ENOMEM;
+                        err(1, "stracat");
+                }
                 if (a)
                         buf[b++] = ' ';
                 arg = argv[a];
@@ -62,7 +68,10 @@ static void stracat_quoted (char *buf, size_t bufsz, int argc, const char **argv
         assert(argv);
         for (a = 0; a < argc; a++) {
                 const char *arg;
-                assert(b < bufsz - 3 - strlen(argv[a]));
+                if (b >= bufsz - strlen(argv[a]) * 2 - 2) {
+                        errno = ENOMEM;
+                        err(1, "stracat");
+                }
                 if (a)
                         buf[b++] = ' ';
                 buf[b++] = '"';
@@ -87,23 +96,33 @@ static void log_args (const char *op, int argc, const char **argv)
 
 static void log_rule (const char *op, s_rule *rule)
 {
-        char msg[2048];
+
+        char msg[LOG_BUFSZ];
         size_t m = 0;
-        const char *mode;
+        const char *mode = "?";
         m += strlcpy(msg + m, GIT_AUTH_ID_ENV, sizeof(msg) - m);
+        if (m >= LOG_BUFSZ - 2)
+                goto overflow;
         msg[m++] = '=';
         m += strlcpy(msg + m, rule->user, sizeof(msg) - m);
+        if (m >= LOG_BUFSZ - 2)
+                goto overflow;
         msg[m++] = ' ';
         assert(1 <= rule->mode && rule->mode <= 3);
         switch (rule->mode) {
         case 1: mode = "r"; break;
         case 2: mode = "w"; break;
         case 3: mode = "rw"; break;
+        default: fprintf(stderr, "log_rule: invalid mode: %d\n", rule->mode);
         }
         m += strlcpy(msg + m, mode, sizeof(msg) - m);
+        if (m >= LOG_BUFSZ - 2)
+                goto overflow;
         msg[m++] = ' ';
         m += strlcpy(msg + m, rule->path, sizeof(msg) - m);
         syslog(LOG_INFO, "%s %s", op, msg);
+ overflow:
+        fprintf(stderr, "git-auth: log_rule: buffer overflow !\n");
 }
 
 /*
@@ -121,8 +140,8 @@ static void log_rules (s_rule rules[RULES_MAX])
 
 static void log_cmd (const char *op, int argc, const char **argv)
 {
-        char msg[2048];
-        stracat(msg, sizeof(msg), argc, argv);
+        char msg[LOG_BUFSZ];
+        stracat(msg, LOG_BUFSZ, argc, argv);
         syslog(LOG_INFO, "%s %s", op, msg);
 }
 
@@ -191,13 +210,13 @@ static void cleanup (void)
 
 static void exec_cmd (int argc, const char **argv)
 {
-        char buf[2048];
+        char buf[CMD_BUFSZ];
         const char *cmd_argv[4];
         assert(argc);
         assert(argv);
         cmd_argv[0] = GIT_SHELL;
         cmd_argv[1] = "-c";
-        stracat(buf, sizeof(buf), argc - 1, argv + 1);
+        stracat(buf, CMD_BUFSZ, argc - 1, argv + 1);
         cmd_argv[2] = buf;
         cmd_argv[3] = NULL;
         log_cmd("EXEC", 3, cmd_argv);
@@ -215,14 +234,14 @@ static void usage (const char *argv0)
 
 int main (int argc, char **argv)
 {
-        char buf[1024];
+        char buf[LOG_BUFSZ];
         char *bs;
         s_rule rules[RULES_MAX];
         const char *git_auth_id;
         int auth_ok;
         const char *cmd_argv[3];
         if (argc != 3) {
-                char buf[1024];
+                char buf[LOG_BUFSZ];
                 fprintf(stderr, "git-auth: wrong number of arguments: %d.\n", argc);
                 stracat_quoted(buf, sizeof(buf), argc, (const char **) argv);
                 fprintf(stderr, "%s\n", buf);
@@ -238,7 +257,7 @@ int main (int argc, char **argv)
                 usage(argv[0]);
         }
         cmd_argv[0] = git_auth_id;
-        strlcpy(buf, argv[2], sizeof(buf));
+        strlcpy(buf, argv[2], LOG_BUFSZ);
         cmd_argv[1] = buf;
         bs = strchr(buf, ' ');
         *bs++ = 0;
