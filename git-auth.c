@@ -122,6 +122,7 @@ static void log_rule (const char *op, s_rule *rule)
         msg[m++] = ' ';
         m += strlcpy(msg + m, rule->path, sizeof(msg) - m);
         syslog(LOG_INFO, "%s %s", op, msg);
+        return;
  overflow:
         fprintf(stderr, "git-auth: log_rule: buffer overflow !\n");
 }
